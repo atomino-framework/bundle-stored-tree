@@ -1,5 +1,6 @@
 <?php namespace Atomino\Carbon\Plugins\StoredTree;
 
+use Atomino\Bundle\StoredTree\TreeManager;
 use Atomino\Carbon\Attributes\EventHandler;
 use Atomino\Carbon\Database\Finder\Comparison;
 use Atomino\Carbon\Database\Finder\Filter;
