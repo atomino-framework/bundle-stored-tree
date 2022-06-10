@@ -1,0 +1,22 @@
+{
+    "name": "atomino/bundle-stored-tree",
+    "description": "Atomino Stored Tree Carbon plugin",
+    "keywords": [],
+    "license" : "MIT",
+    "authors" : [
+        {
+            "name": "Gergely Laborci",
+            "email": "gergely@laborci.hu"
+        }
+    ],
+    "require": {
+        "atomino/carbon": "dev-master",
+        "ext-json": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Atomino\\Bundle\\StoredTree\\": "bundle/",
+            "Atomino\\Carbon\\Plugins\\StoredTree\\": "plugin-carbon/"
+        }
+    }
+}
