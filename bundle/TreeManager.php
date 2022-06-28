@@ -2,18 +2,27 @@
 
 
 use Atomino\Carbon\Store;
+use function Atomino\debug;
 
 class TreeManager {
 	public function __construct(private readonly Store $store) { }
 
 	public function move(int $id, int|null $parentId, int|null $sequence = null): bool {
 		$tree = $this->getTree();
-		$parentPath = $this->getPath($parentId);
-		if(in_array($id, $parentPath)){ return false; }
+		if ($parentId !== null) {
+			$parentPath = $this->getPath($parentId);
+			if (in_array($id, $parentPath)) {
+				return false;
+			}
+		}
+
+		if (static::getParent($id) !== $parentId && $sequence !== null) $sequence++;
+		if(static::getParent($id) === $parentId && $sequence < $this->getSequence($id)) $sequence++;
 
 		$removed = $this->_remove($id, $tree, false);
 		if (!is_null($removed)) {
-			$subtree = &$this->_getSubTree($parentId, $tree);
+			if ($parentId !== null) $subtree = &$this->_getSubTree($parentId, $tree);
+			else $subtree = &$tree;
 			$sequence = is_null($sequence) ? count($subtree) : min($sequence, count($subtree));
 			array_splice($subtree, $sequence, 0, [$removed]);
 		}
@@ -33,14 +42,23 @@ class TreeManager {
 		$this->store->set($tree);
 	}
 
+	public function getSequence($id): int|null {
+		$parent = static::getParent($id);
+		$items = $this->getChildren($parent);
+
+		$index = array_search($id, $items);
+		if ($index === false) return null;
+		return $index;
+	}
+
 	public function getParent(int $id): int|null|false {
 		$path = $this->getPath($id);
 		return $path === false ? false : array_pop($path);
 	}
 
-	public function getPath(int $id): array|false { return $this->_getPath($id, $this->getTree(), null) ?? false; }
+	public function getPath(int|null $id): array|false { return $this->_getPath($id, $this->getTree(), null) ?? false; }
 
-	public function getChildren(int $id, bool $recursive = false, &$subtree = null): array {
+	public function getChildren(int|null $id, bool $recursive = false, &$subtree = null): array {
 		$subtree = $this->getSubtree($id);
 		if ($subtree === false) return [];
 		$ids = [];
@@ -52,8 +70,9 @@ class TreeManager {
 
 	public function getTree() { return $this->store->get(); }
 
-	public function getSubTree(int $id): array {
+	public function getSubTree(int|null $id): array {
 		$tree = $this->getTree();
+		if (is_null($id)) return $tree;
 		return $this->_getSubTree($id, $tree);
 	}
 
@@ -85,7 +104,7 @@ class TreeManager {
 				return $item;
 			} elseif (count($item["items"])) {
 				$result = $this->_remove($id, $item["items"], $replaceWithChildren);
-				if(!is_null($result)) return $result;
+				if (!is_null($result)) return $result;
 			}
 		}
 		return null;

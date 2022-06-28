@@ -6,6 +6,7 @@ use Atomino\Carbon\Database\Finder\Comparison;
 use Atomino\Carbon\Database\Finder\Filter;
 use Atomino\Carbon\Entity;
 use Atomino\Carbon\Store;
+use function Atomino\debug;
 
 trait StoredTreeTrait {
 
@@ -33,9 +34,11 @@ trait StoredTreeTrait {
 		return static::treeManager()->getPath($id);
 	}
 
-	public static function treeMove(int|Entity $id, int|Entity $parentId, int|null $sequence): bool {
+	public static function treeMove(int|Entity $id, int|Entity|null $parentId, int|null $sequence): bool {
 		$id = is_object($id) ? $id->id : $id;
-		$parentId = is_object($parentId) ? $parentId->id : $parentId;
+		if ($parentId !== null) {
+			$parentId = is_object($parentId) ? $parentId->id : $parentId;
+		}
 		return static::treeManager()->move($id, $parentId, $sequence);
 	}
 
@@ -53,7 +56,7 @@ trait StoredTreeTrait {
 	 * @param int|Entity $id
 	 * @return static[]
 	 */
-	public static function treeChildren(int|Entity $id, Filter|null $filter = null): array {
+	public static function treeChildren(int|null|Entity $id, Filter|null $filter = null): array {
 		$id = is_object($id) ? $id->id : $id;
 		$ids = static::treeManager()->getChildren($id);
 		$objects = is_null($filter)
@@ -67,11 +70,27 @@ trait StoredTreeTrait {
 		return $result;
 	}
 
-	public static function treeFetch(int|Entity $id, Filter|null $filter = null): void {
+	public static function treeFetch(int|null|Entity $id, Filter|null $filter = null): void {
 		$id = is_object($id) ? $id->id : $id;
 		$ids = static::treeManager()->getChildren($id, true);
 		is_null($filter)
 			? static::collect($ids)
 			: static::search(Filter::where(Comparison::field("id", $ids))->and($filter))->collect();
+	}
+
+	public static function tree(int|null|Entity $id = null, Filter|null $filter = null, callable|null $converter = null) {
+		$id = is_object($id) ? $id->id : $id;
+		static::treeFetch($id, $filter);
+		$subtree = self::treeManager()->getSubTree($id);
+		self::_tree($subtree, $converter);
+		return $subtree;
+	}
+
+	private static function _tree(&$items, callable|null $converter) {
+		foreach ($items as &$item) {
+			$object = static::pick($item["id"]);
+			$item["object"] = is_null($converter) ? $object : $converter($object);
+			self::_tree($item["items"], $converter);
+		}
 	}
 }
