@@ -59,6 +59,7 @@ trait StoredTreeTrait {
 	public static function treeChildren(int|null|Entity $id, Filter|null $filter = null): array {
 		$id = is_object($id) ? $id->id : $id;
 		$ids = static::treeManager()->getChildren($id);
+		if(count($ids) === 0) return [];
 		$objects = is_null($filter)
 			? static::collect($ids)
 			: static::search(Filter::where(Comparison::field("id", $ids))->and($filter))->collect();
@@ -73,6 +74,7 @@ trait StoredTreeTrait {
 	public static function treeFetch(int|null|Entity $id, Filter|null $filter = null): void {
 		$id = is_object($id) ? $id->id : $id;
 		$ids = static::treeManager()->getChildren($id, true);
+		if(count($ids) === 0) return;
 		is_null($filter)
 			? static::collect($ids)
 			: static::search(Filter::where(Comparison::field("id", $ids))->and($filter))->collect();
